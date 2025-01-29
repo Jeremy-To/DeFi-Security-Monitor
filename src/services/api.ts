@@ -4,14 +4,30 @@ import { config } from '../config/environment';
 
 const { API_BASE_URL } = config;
 
-const handleApiError = (error: unknown, defaultMessage: string) => {
+interface ApiError {
+	message: string;
+	code?: string;
+	details?: unknown;
+}
+
+const createApiError = (error: unknown, defaultMessage: string): ApiError => {
 	if (axios.isAxiosError(error)) {
-		const message = error.response?.data?.detail || defaultMessage;
-		// Log error for monitoring
-		console.error(`API Error: ${message}`, error);
-		throw new Error(message);
+		return {
+			message: error.response?.data?.detail || defaultMessage,
+			code: error.code,
+			details: error.response?.data,
+		};
 	}
-	throw error;
+	return {
+		message: error instanceof Error ? error.message : defaultMessage,
+		details: error,
+	};
+};
+
+const handleApiError = (error: unknown, defaultMessage: string): never => {
+	const apiError = createApiError(error, defaultMessage);
+	console.error('API Error:', apiError);
+	throw new Error(apiError.message);
 };
 
 export const analyzeContract = async (

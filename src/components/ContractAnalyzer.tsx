@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
 	Box,
 	Button,
-	Input,
 	Heading,
 	Text,
 	Alert,
@@ -12,6 +11,9 @@ import {
 } from '@chakra-ui/react';
 import { analyzeContract } from '../services/api';
 import type { AnalysisResult } from '../types';
+import { AddressInput } from './common/AddressInput';
+import { validateAddress } from '../utils/validation';
+import AnalysisResults from './AnalysisResults';
 
 const ContractAnalyzer = () => {
 	const [address, setAddress] = useState('');
@@ -25,10 +27,12 @@ const ContractAnalyzer = () => {
 	const buttonHeight = useBreakpointValue({ base: '46px', md: '56px' });
 	const fontSize = useBreakpointValue({ base: 'sm', md: 'md' });
 	const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
+	const spinnerSize = useBreakpointValue({ base: 'md', md: 'xl' });
 
 	const handleAnalyze = async () => {
-		if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
-			setError('Please enter a valid Ethereum contract address');
+		const validationError = validateAddress(address);
+		if (validationError) {
+			setError(validationError);
 			return;
 		}
 
@@ -53,18 +57,12 @@ const ContractAnalyzer = () => {
 			</Heading>
 
 			<Box mb={6}>
-				<Input
-					placeholder="Enter contract address (0x...)"
+				<AddressInput
 					value={address}
-					onChange={(e) => setAddress(e.target.value)}
-					size={fontSize}
-					bg="background.secondary"
-					border="none"
-					color="whiteAlpha.900"
-					_placeholder={{ color: 'whiteAlpha.500' }}
-					mb={4}
+					onChange={setAddress}
 					height={inputHeight}
 					fontSize={fontSize}
+					mb={4}
 				/>
 				<Button
 					onClick={handleAnalyze}
@@ -99,17 +97,14 @@ const ContractAnalyzer = () => {
 
 			{loading && (
 				<Box textAlign="center">
-					<Spinner
-						size={useBreakpointValue({ base: 'md', md: 'xl' })}
-						color="brand.primary"
-					/>
+					<Spinner size={spinnerSize} color="brand.primary" />
 					<Text mt={2} color="whiteAlpha.700" fontSize={fontSize}>
 						Analyzing contract...
 					</Text>
 				</Box>
 			)}
 
-			{result && <Box>{/* We can add the results display later */}</Box>}
+			{result && <AnalysisResults result={result} />}
 		</Box>
 	);
 };
