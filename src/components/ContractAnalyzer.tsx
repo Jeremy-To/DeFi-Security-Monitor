@@ -27,8 +27,8 @@ const ContractAnalyzer = () => {
 	const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
 
 	const handleAnalyze = async () => {
-		if (!address) {
-			setError('Please enter a contract address');
+		if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+			setError('Please enter a valid Ethereum contract address');
 			return;
 		}
 
