@@ -1,26 +1,21 @@
 import { useState } from 'react';
 import {
 	Box,
-	VStack,
 	Heading,
-	Input,
 	Button,
 	Alert,
 	AlertIcon,
 	Spinner,
 	Text,
-	Card,
-	CardHeader,
-	CardBody,
 	useBreakpointValue,
 } from '@chakra-ui/react';
-import { getTokenAnalysis } from '../services/api';
+import { AddressInput } from './common/AddressInput';
+import { TokenAnalysisResults } from './TokenAnalysisResults';
+import { useTokenAnalysis } from '../hooks/useTokenAnalysis';
 
 const TokenAnalysis = () => {
 	const [address, setAddress] = useState('');
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
-	const [result, setResult] = useState<any>(null);
+	const { isLoading, error, data, analyze } = useTokenAnalysis();
 
 	const padding = useBreakpointValue({ base: 4, md: 6 });
 	const maxWidth = useBreakpointValue({ base: '100%', md: '800px' });
@@ -28,23 +23,10 @@ const TokenAnalysis = () => {
 	const buttonHeight = useBreakpointValue({ base: '46px', md: '56px' });
 	const fontSize = useBreakpointValue({ base: 'sm', md: 'md' });
 	const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
+	const spinnerSize = useBreakpointValue({ base: 'md', md: 'xl' });
 
-	const handleAnalyze = async () => {
-		if (!address) {
-			setError('Please enter a token address');
-			return;
-		}
-
-		setLoading(true);
-		setError('');
-		try {
-			const data = await getTokenAnalysis(address);
-			setResult(data);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to analyze token');
-		} finally {
-			setLoading(false);
-		}
+	const handleAnalyze = () => {
+		analyze(address);
 	};
 
 	return (
@@ -53,54 +35,56 @@ const TokenAnalysis = () => {
 				Token Analysis
 			</Heading>
 
-			<VStack spacing={6} align="stretch">
-				<Box>
-					<Input
-						placeholder="Enter token address (0x...)"
-						value={address}
-						onChange={(e) => setAddress(e.target.value)}
-						size="lg"
-						mb={4}
-						height={inputHeight}
-						fontSize={fontSize}
-					/>
-					<Button
-						colorScheme="blue"
-						onClick={handleAnalyze}
-						isLoading={loading}
-						loadingText="Analyzing"
-						width="full"
-						height={buttonHeight}
-					>
-						Analyze Token
-					</Button>
+			<Box mb={6}>
+				<AddressInput
+					value={address}
+					onChange={setAddress}
+					height={inputHeight}
+					fontSize={fontSize}
+					mb={4}
+					isDisabled={isLoading}
+				/>
+				<Button
+					onClick={handleAnalyze}
+					isLoading={isLoading}
+					loadingText="Analyzing"
+					width="full"
+					bg="brand.primary"
+					color="white"
+					height={buttonHeight}
+					fontSize={fontSize}
+					_hover={{
+						bg: 'brand.primary',
+						opacity: 0.9,
+					}}
+				>
+					Analyze Token
+				</Button>
+			</Box>
+
+			{error && (
+				<Alert
+					status="error"
+					bg="background.secondary"
+					color="red.300"
+					fontSize={fontSize}
+					borderRadius="md"
+				>
+					<AlertIcon />
+					{error}
+				</Alert>
+			)}
+
+			{isLoading && (
+				<Box textAlign="center">
+					<Spinner size={spinnerSize} color="brand.primary" />
+					<Text mt={2} color="whiteAlpha.700" fontSize={fontSize}>
+						Analyzing token...
+					</Text>
 				</Box>
+			)}
 
-				{error && (
-					<Alert status="error">
-						<AlertIcon />
-						{error}
-					</Alert>
-				)}
-
-				{loading && (
-					<Box textAlign="center">
-						<Spinner size="xl" />
-						<Text mt={2}>Analyzing token...</Text>
-					</Box>
-				)}
-
-				{result && (
-					<Card>
-						<CardHeader>
-							<Heading size="md">Token Analysis Results</Heading>
-						</CardHeader>
-						<CardBody>
-							<pre>{JSON.stringify(result, null, 2)}</pre>
-						</CardBody>
-					</Card>
-				)}
-			</VStack>
+			{data && <TokenAnalysisResults result={data} />}
 		</Box>
 	);
 };

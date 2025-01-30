@@ -1,93 +1,92 @@
 import { useState } from 'react';
 import {
-  Box,
-  VStack,
-  Heading,
-  Input,
-  Button,
-  Alert,
-  AlertIcon,
-  Spinner,
-  Text,
-  Card,
-  CardHeader,
-  CardBody,
+	Box,
+	Heading,
+	Button,
+	Alert,
+	AlertIcon,
+	Spinner,
+	Text,
+	useBreakpointValue,
 } from '@chakra-ui/react';
-import { getGasAnalysis } from '../services/api';
+import { AddressInput } from './common/AddressInput';
+import { GasAnalysisResults } from './GasAnalysisResults';
+import { useGasAnalysis } from '../hooks/useGasAnalysis';
 
 const GasAnalysis = () => {
-  const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<any>(null);
+	const [address, setAddress] = useState('');
+	const { isLoading, error, data, analyze } = useGasAnalysis();
 
-  const handleAnalyze = async () => {
-    if (!address) {
-      setError('Please enter a contract address');
-      return;
-    }
+	const padding = useBreakpointValue({ base: 4, md: 6 });
+	const maxWidth = useBreakpointValue({ base: '100%', md: '800px' });
+	const inputHeight = useBreakpointValue({ base: '50px', md: '60px' });
+	const buttonHeight = useBreakpointValue({ base: '46px', md: '56px' });
+	const fontSize = useBreakpointValue({ base: 'sm', md: 'md' });
+	const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
+	const spinnerSize = useBreakpointValue({ base: 'md', md: 'xl' });
 
-    setLoading(true);
-    setError('');
-    try {
-      const data = await getGasAnalysis(address);
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze gas usage');
-    } finally {
-      setLoading(false);
-    }
-  };
+	const handleAnalyze = () => {
+		analyze(address);
+	};
 
-  return (
-    <VStack spacing={6} align="stretch">
-      <Heading size="lg">Gas Analysis</Heading>
+	return (
+		<Box maxW={maxWidth} mx="auto" px={padding}>
+			<Heading size={headingSize} mb={6} color="whiteAlpha.900">
+				Gas Analysis
+			</Heading>
 
-      <Box>
-        <Input
-          placeholder="Enter contract address (0x...)"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          size="lg"
-          mb={4}
-        />
-        <Button
-          colorScheme="blue"
-          onClick={handleAnalyze}
-          isLoading={loading}
-          loadingText="Analyzing"
-          width="full"
-        >
-          Analyze Gas Usage
-        </Button>
-      </Box>
+			<Box mb={6}>
+				<AddressInput
+					value={address}
+					onChange={setAddress}
+					height={inputHeight}
+					fontSize={fontSize}
+					mb={4}
+					isDisabled={isLoading}
+				/>
+				<Button
+					onClick={handleAnalyze}
+					isLoading={isLoading}
+					loadingText="Analyzing"
+					width="full"
+					bg="brand.primary"
+					color="white"
+					height={buttonHeight}
+					fontSize={fontSize}
+					_hover={{
+						bg: 'brand.primary',
+						opacity: 0.9,
+					}}
+				>
+					Analyze Gas Usage
+				</Button>
+			</Box>
 
-      {error && (
-        <Alert status="error">
-          <AlertIcon />
-          {error}
-        </Alert>
-      )}
+			{error && (
+				<Alert
+					status="error"
+					bg="background.secondary"
+					color="red.300"
+					fontSize={fontSize}
+					borderRadius="md"
+				>
+					<AlertIcon />
+					{error}
+				</Alert>
+			)}
 
-      {loading && (
-        <Box textAlign="center">
-          <Spinner size="xl" />
-          <Text mt={2}>Analyzing gas usage...</Text>
-        </Box>
-      )}
+			{isLoading && (
+				<Box textAlign="center">
+					<Spinner size={spinnerSize} color="brand.primary" />
+					<Text mt={2} color="whiteAlpha.700" fontSize={fontSize}>
+						Analyzing gas usage...
+					</Text>
+				</Box>
+			)}
 
-      {result && (
-        <Card>
-          <CardHeader>
-            <Heading size="md">Gas Analysis Results</Heading>
-          </CardHeader>
-          <CardBody>
-            <pre>{JSON.stringify(result, null, 2)}</pre>
-          </CardBody>
-        </Card>
-      )}
-    </VStack>
-  );
+			{data && <GasAnalysisResults result={data} />}
+		</Box>
+	);
 };
 
-export default GasAnalysis; 
+export default GasAnalysis;

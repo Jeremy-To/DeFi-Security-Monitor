@@ -9,17 +9,13 @@ import {
 	Spinner,
 	useBreakpointValue,
 } from '@chakra-ui/react';
-import { analyzeContract } from '../services/api';
-import type { AnalysisResult } from '../types';
 import { AddressInput } from './common/AddressInput';
-import { validateAddress } from '../utils/validation';
 import AnalysisResults from './AnalysisResults';
+import { useContractAnalysis } from '../hooks/useContractAnalysis';
 
 const ContractAnalyzer = () => {
 	const [address, setAddress] = useState('');
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
-	const [result, setResult] = useState<AnalysisResult | null>(null);
+	const { isLoading, error, data, analyze } = useContractAnalysis();
 
 	const padding = useBreakpointValue({ base: 4, md: 6 });
 	const maxWidth = useBreakpointValue({ base: '100%', md: '800px' });
@@ -29,25 +25,8 @@ const ContractAnalyzer = () => {
 	const headingSize = useBreakpointValue({ base: 'md', md: 'lg' });
 	const spinnerSize = useBreakpointValue({ base: 'md', md: 'xl' });
 
-	const handleAnalyze = async () => {
-		const validationError = validateAddress(address);
-		if (validationError) {
-			setError(validationError);
-			return;
-		}
-
-		setLoading(true);
-		setError('');
-		try {
-			const data = await analyzeContract(address);
-			setResult(data);
-		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : 'Failed to analyze contract'
-			);
-		} finally {
-			setLoading(false);
-		}
+	const handleAnalyze = () => {
+		analyze(address);
 	};
 
 	return (
@@ -63,10 +42,11 @@ const ContractAnalyzer = () => {
 					height={inputHeight}
 					fontSize={fontSize}
 					mb={4}
+					isDisabled={isLoading}
 				/>
 				<Button
 					onClick={handleAnalyze}
-					isLoading={loading}
+					isLoading={isLoading}
 					loadingText="Analyzing"
 					width="full"
 					bg="brand.primary"
@@ -95,7 +75,7 @@ const ContractAnalyzer = () => {
 				</Alert>
 			)}
 
-			{loading && (
+			{isLoading && (
 				<Box textAlign="center">
 					<Spinner size={spinnerSize} color="brand.primary" />
 					<Text mt={2} color="whiteAlpha.700" fontSize={fontSize}>
@@ -104,7 +84,7 @@ const ContractAnalyzer = () => {
 				</Box>
 			)}
 
-			{result && <AnalysisResults result={result} />}
+			{data && <AnalysisResults result={data} />}
 		</Box>
 	);
 };
