@@ -7,7 +7,6 @@ import {
 	StatLabel,
 	StatNumber,
 	Progress,
-	Badge,
 	Accordion,
 	AccordionItem,
 	AccordionButton,
@@ -15,181 +14,273 @@ import {
 	AccordionIcon,
 	Icon,
 	HStack,
+	List,
+	ListItem,
+	ListIcon,
+	Spinner,
+	Center,
 } from '@chakra-ui/react';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import {
+	FaExclamationTriangle,
+	FaCheckCircle,
+	FaTimesCircle,
+} from 'react-icons/fa';
 import type { TokenAnalysisResult } from '../types/index';
 import { formatNumber } from '../utils/format';
 
 interface TokenAnalysisResultsProps {
-	result: TokenAnalysisResult;
+	result: TokenAnalysisResult | null;
 }
 
-const getSeverityColor = (severity: string) => {
-	switch (severity.toUpperCase()) {
-		case 'HIGH':
-			return 'red';
-		case 'MEDIUM':
-			return 'orange';
-		case 'LOW':
-			return 'yellow';
-		default:
-			return 'gray';
-	}
+interface SupplyMechanics {
+	[key: string]: boolean | string[];
+	is_mintable: boolean;
+	is_burnable: boolean;
+	has_transfer_fee: boolean;
+	has_max_transaction_limit: boolean;
+	has_blacklist: boolean;
+	has_whitelist: boolean;
+	has_anti_whale: boolean;
+	suspicious_features: string[];
+}
+
+const defaultBasicInfo = {
+	total_supply: 0,
+	decimals: 0,
+	symbol: '',
+	name: '',
+};
+
+const defaultSupplyMechanics: SupplyMechanics = {
+	is_mintable: false,
+	is_burnable: false,
+	has_transfer_fee: false,
+	has_max_transaction_limit: false,
+	has_blacklist: false,
+	has_whitelist: false,
+	has_anti_whale: false,
+	suspicious_features: [],
+};
+
+const defaultSecurityAnalysis = {
+	vulnerabilities: [],
+	security_features: [],
+	ownership_analysis: {
+		has_owner: false,
+		can_renounce_ownership: false,
+		has_multiple_admins: false,
+		has_timelock: false,
+	},
+	risk_indicators: {
+		high_risk_functions: false,
+		centralized_control: false,
+		unsafe_design: false,
+		complexity_risk: false,
+	},
+};
+
+const defaultRiskAssessment = {
+	risk_score: 0,
+	risk_level: 'UNKNOWN',
+	risk_factors: [],
+	recommendations: [],
+	immediate_concerns: [],
 };
 
 export const TokenAnalysisResults = ({ result }: TokenAnalysisResultsProps) => {
-	const {
-		token_type = 'Unknown',
-		total_supply = 0,
-		circulating_supply = 0,
-		holder_metrics = {
-			total_holders: 0,
-			top_holder_concentration: 0,
-			distribution_gini: 0,
-		},
-		trading_metrics = {
-			volume_24h: 0,
-			liquidity: 0,
-			price_impact: 0,
-		},
-		risk_indicators = [],
-	} = result || {};
+	if (!result) {
+		return (
+			<Center h="200px">
+				<Spinner size="xl" color="brand.primary" />
+			</Center>
+		);
+	}
 
-	const getPercentageDisplay = (value: number | undefined | null) => {
-		if (value === undefined || value === null) return 'N/A';
-		return `${(value * 100).toFixed(2)}%`;
+	const basic_info = { ...defaultBasicInfo, ...result.basic_info };
+	const supply_mechanics = {
+		...defaultSupplyMechanics,
+		...result.supply_mechanics,
 	};
-
-	const getGiniDisplay = (value: number | undefined | null) => {
-		if (value === undefined || value === null) return 'N/A';
-		return value.toFixed(3);
+	const security_analysis = {
+		...defaultSecurityAnalysis,
+		...result.security_analysis,
+	};
+	const risk_assessment = {
+		...defaultRiskAssessment,
+		...result.risk_assessment,
 	};
 
 	return (
 		<VStack spacing={6} align="stretch" w="full">
-			{/* Token Info */}
+			{/* Basic Info */}
 			<Box bg="background.secondary" p={6} borderRadius="lg">
 				<Text fontSize="lg" fontWeight="bold" mb={4} color="whiteAlpha.900">
 					Token Information
 				</Text>
 				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
 					<Stat>
-						<StatLabel>Token Type</StatLabel>
-						<StatNumber>{token_type}</StatNumber>
+						<StatLabel>Token Name</StatLabel>
+						<StatNumber>{basic_info.name}</StatNumber>
+					</Stat>
+					<Stat>
+						<StatLabel>Symbol</StatLabel>
+						<StatNumber>{basic_info.symbol}</StatNumber>
 					</Stat>
 					<Stat>
 						<StatLabel>Total Supply</StatLabel>
-						<StatNumber>{formatNumber(total_supply)}</StatNumber>
+						<StatNumber>
+							{formatNumber(basic_info.total_supply || 0)}
+						</StatNumber>
 					</Stat>
 					<Stat>
-						<StatLabel>Circulating Supply</StatLabel>
-						<StatNumber>{formatNumber(circulating_supply)}</StatNumber>
+						<StatLabel>Decimals</StatLabel>
+						<StatNumber>{basic_info.decimals}</StatNumber>
 					</Stat>
 				</SimpleGrid>
 			</Box>
 
-			{/* Holder Metrics */}
+			{/* Supply Mechanics */}
 			<Box bg="background.secondary" p={6} borderRadius="lg">
 				<Text fontSize="lg" fontWeight="bold" mb={4} color="whiteAlpha.900">
-					Holder Distribution
+					Supply Mechanics
 				</Text>
 				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-					<Stat>
-						<StatLabel>Total Holders</StatLabel>
-						<StatNumber>
-							{formatNumber(holder_metrics?.total_holders)}
-						</StatNumber>
-					</Stat>
+					{Object.entries(supply_mechanics)
+						.filter(
+							(entry): entry is [string, boolean] =>
+								typeof entry[1] === 'boolean'
+						)
+						.map(([key, value]) => (
+							<HStack key={key} justify="space-between" p={2}>
+								<Text>
+									{key
+										.split('_')
+										.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+										.join(' ')}
+								</Text>
+								<Icon
+									as={value ? FaCheckCircle : FaTimesCircle}
+									color={value ? 'green.500' : 'red.500'}
+								/>
+							</HStack>
+						))}
+				</SimpleGrid>
+				{supply_mechanics.suspicious_features?.length > 0 && (
+					<Box mt={4}>
+						<Text fontWeight="bold" mb={2}>
+							Suspicious Features:
+						</Text>
+						<List spacing={2}>
+							{supply_mechanics.suspicious_features.map((feature, index) => (
+								<ListItem key={index} color="red.300">
+									<ListIcon as={FaExclamationTriangle} color="red.300" />
+									{feature}
+								</ListItem>
+							))}
+						</List>
+					</Box>
+				)}
+			</Box>
+
+			{/* Risk Assessment */}
+			<Box bg="background.secondary" p={6} borderRadius="lg">
+				<Text fontSize="lg" fontWeight="bold" mb={4} color="whiteAlpha.900">
+					Risk Assessment
+				</Text>
+				<VStack spacing={4} align="stretch">
 					<Box>
-						<Text mb={2}>Top Holder Concentration</Text>
+						<Text mb={2}>Risk Score</Text>
 						<Progress
-							value={(holder_metrics?.top_holder_concentration || 0) * 100}
+							value={risk_assessment.risk_score}
 							colorScheme={
-								(holder_metrics?.top_holder_concentration || 0) > 0.5
+								risk_assessment.risk_score > 70
 									? 'red'
-									: (holder_metrics?.top_holder_concentration || 0) > 0.3
+									: risk_assessment.risk_score > 30
 									? 'orange'
 									: 'green'
 							}
 							borderRadius="full"
 						/>
-						<Text fontSize="sm" mt={1}>
-							{getPercentageDisplay(holder_metrics?.top_holder_concentration)}
+						<Text mt={1} fontSize="sm">
+							{risk_assessment.risk_score}/100 - {risk_assessment.risk_level}{' '}
+							Risk
 						</Text>
 					</Box>
-					<Stat>
-						<StatLabel>Distribution Score (Gini)</StatLabel>
-						<StatNumber>
-							{getGiniDisplay(holder_metrics?.distribution_gini)}
-						</StatNumber>
-					</Stat>
-				</SimpleGrid>
+
+					<Accordion allowMultiple>
+						{risk_assessment.risk_factors?.length > 0 && (
+							<AccordionItem>
+								<AccordionButton>
+									<Box flex="1" textAlign="left">
+										Risk Factors
+									</Box>
+									<AccordionIcon />
+								</AccordionButton>
+								<AccordionPanel>
+									<List spacing={2}>
+										{risk_assessment.risk_factors.map((factor, index) => (
+											<ListItem key={index}>
+												<ListIcon
+													as={FaExclamationTriangle}
+													color="orange.500"
+												/>
+												{factor}
+											</ListItem>
+										))}
+									</List>
+								</AccordionPanel>
+							</AccordionItem>
+						)}
+
+						<AccordionItem>
+							<AccordionButton>
+								<Box flex="1" textAlign="left">
+									Security Analysis
+								</Box>
+								<AccordionIcon />
+							</AccordionButton>
+							<AccordionPanel>
+								<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+									{Object.entries(
+										security_analysis.ownership_analysis || {}
+									).map(([key, value]) => (
+										<HStack key={key} justify="space-between">
+											<Text>
+												{key
+													.split('_')
+													.map(
+														(word) =>
+															word.charAt(0).toUpperCase() + word.slice(1)
+													)
+													.join(' ')}
+											</Text>
+											<Icon
+												as={value ? FaCheckCircle : FaTimesCircle}
+												color={value ? 'green.500' : 'red.500'}
+											/>
+										</HStack>
+									))}
+								</SimpleGrid>
+							</AccordionPanel>
+						</AccordionItem>
+					</Accordion>
+				</VStack>
 			</Box>
 
-			{/* Trading Metrics */}
-			<Box bg="background.secondary" p={6} borderRadius="lg">
-				<Text fontSize="lg" fontWeight="bold" mb={4} color="whiteAlpha.900">
-					Trading Analysis
-				</Text>
-				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-					<Stat>
-						<StatLabel>24h Volume</StatLabel>
-						<StatNumber>
-							${formatNumber(trading_metrics?.volume_24h)}
-						</StatNumber>
-					</Stat>
-					<Stat>
-						<StatLabel>Liquidity</StatLabel>
-						<StatNumber>${formatNumber(trading_metrics?.liquidity)}</StatNumber>
-					</Stat>
-					<Stat>
-						<StatLabel>Price Impact (10k USD)</StatLabel>
-						<StatNumber>
-							{getPercentageDisplay(trading_metrics?.price_impact)}
-						</StatNumber>
-					</Stat>
-				</SimpleGrid>
-			</Box>
-
-			{/* Risk Indicators */}
-			{risk_indicators.length > 0 && (
+			{/* Recommendations */}
+			{risk_assessment.recommendations?.length > 0 && (
 				<Box bg="background.secondary" p={6} borderRadius="lg">
 					<Text fontSize="lg" fontWeight="bold" mb={4} color="whiteAlpha.900">
-						Risk Analysis
+						Recommendations
 					</Text>
-					<Accordion allowMultiple>
-						{risk_indicators.map(
-							(
-								risk: TokenAnalysisResult['risk_indicators'][0],
-								index: number
-							) => (
-								<AccordionItem key={index} border="none" mb={2}>
-									<AccordionButton
-										bg="whiteAlpha.50"
-										_hover={{ bg: 'whiteAlpha.100' }}
-										borderRadius="md"
-									>
-										<HStack flex="1" spacing={3}>
-											<Icon
-												as={FaExclamationTriangle}
-												color={`${getSeverityColor(risk.severity)}.500`}
-											/>
-											<Text fontWeight="medium">
-												{risk.type.replace(/_/g, ' ')}
-											</Text>
-											<Badge colorScheme={getSeverityColor(risk.severity)}>
-												{risk.severity}
-											</Badge>
-										</HStack>
-										<AccordionIcon />
-									</AccordionButton>
-									<AccordionPanel pb={4}>
-										<Text color="whiteAlpha.800">{risk.description}</Text>
-									</AccordionPanel>
-								</AccordionItem>
-							)
-						)}
-					</Accordion>
+					<List spacing={2}>
+						{risk_assessment.recommendations.map((recommendation, index) => (
+							<ListItem key={index}>
+								<ListIcon as={FaCheckCircle} color="green.500" />
+								{recommendation}
+							</ListItem>
+						))}
+					</List>
 				</Box>
 			)}
 		</VStack>

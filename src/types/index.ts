@@ -55,24 +55,58 @@ export interface GasAnalysisState {
 
 // Token Analysis types
 export interface TokenAnalysisResult {
+	contract_address: string;
 	token_type: string;
-	total_supply: number;
-	circulating_supply: number;
-	holder_metrics: {
-		total_holders: number;
-		top_holder_concentration: number;
-		distribution_gini: number;
+	basic_info: {
+		total_supply: number | null;
+		decimals: number;
+		symbol: string;
+		name: string;
+	};
+	supply_mechanics: {
+		is_mintable: boolean;
+		is_burnable: boolean;
+		has_transfer_fee: boolean;
+		has_max_transaction_limit: boolean;
+		has_blacklist: boolean;
+		has_whitelist: boolean;
+		has_anti_whale: boolean;
+		suspicious_features: string[];
 	};
 	trading_metrics: {
-		volume_24h: number;
-		liquidity: number;
-		price_impact: number;
+		volume_24h?: number;
+		liquidity?: number;
+		price_impact?: number;
 	};
-	risk_indicators: Array<{
-		type: string;
-		severity: 'HIGH' | 'MEDIUM' | 'LOW';
-		description: string;
-	}>;
+	holder_analysis: {
+		total_holders?: number;
+		top_holder_percentage?: number;
+		distribution_type?: string;
+	};
+	security_analysis: {
+		vulnerabilities: string[];
+		security_features: string[];
+		ownership_analysis: {
+			has_owner: boolean;
+			can_renounce_ownership: boolean;
+			has_multiple_admins: boolean;
+			has_timelock: boolean;
+		};
+		risk_indicators: {
+			high_risk_functions: boolean;
+			centralized_control: boolean;
+			unsafe_design: boolean;
+			complexity_risk: boolean;
+		};
+	};
+	risk_assessment: {
+		risk_score: number;
+		risk_level: string;
+		risk_factors: string[];
+		recommendations: string[];
+		immediate_concerns: string[];
+	};
+	timestamp: number;
 }
 
 export interface TokenAnalysisState {
